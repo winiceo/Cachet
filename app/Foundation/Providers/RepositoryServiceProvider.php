@@ -11,13 +11,20 @@
 
 namespace CachetHQ\Cachet\Foundation\Providers;
 
-use CachetHQ\Cachet\Dates\DateFactory;
 use CachetHQ\Cachet\Repositories\Metric\MetricRepository;
-use CachetHQ\Cachet\Repositories\Metric\MySqlRepository as MetricMySqlRepository;
-use CachetHQ\Cachet\Repositories\Metric\PgSqlRepository as MetricPgSqlRepository;
-use CachetHQ\Cachet\Repositories\Metric\SqliteRepository as MetricSqliteRepository;
+use CachetHQ\Cachet\Repositories\Metric\MySqlRepository;
+use CachetHQ\Cachet\Repositories\Metric\PgSqlRepository;
+use CachetHQ\Cachet\Repositories\Metric\SqliteRepository;
+use CachetHQ\Cachet\Services\Dates\DateFactory;
+use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Illuminate\Contracts\Container\Container;
 use Illuminate\Support\ServiceProvider;
 
+/**
+ * This is the repository service provider.
+ *
+ * @author James Brooks <james@alt-three.com>
+ */
 class RepositoryServiceProvider extends ServiceProvider
 {
     /**
@@ -37,15 +44,13 @@ class RepositoryServiceProvider extends ServiceProvider
      */
     protected function registerMetricRepository()
     {
-        $this->app->singleton(MetricRepository::class, function ($app) {
-            $dbDriver = $app['config']->get('database.default');
+        $this->app->singleton(MetricRepository::class, function (Container $app) {
+            $config = $app->make(ConfigRepository::class);
 
-            if ($dbDriver == 'mysql') {
-                $repository = new MetricMySqlRepository();
-            } elseif ($dbDriver == 'pgsql') {
-                $repository = new MetricPgSqlRepository();
-            } elseif ($dbDriver == 'sqlite') {
-                $repository = new MetricSqliteRepository();
+            switch ($config->get('database.default')) {
+                case 'mysql': $repository = new MySqlRepository($config); break;
+                case 'pgsql': $repository = new PgSqlRepository($config); break;
+                case 'sqlite': $repository = new SqliteRepository($config); break;
             }
 
             $dates = $app->make(DateFactory::class);
